@@ -1,0 +1,375 @@
+---
+title: "PC4 2/3"
+author: "KATHERINE DELGADO VALENCIA"
+format: html
+editor: visual
+---
+
+## 
+
+## Instalar y cargar los paquetes
+
+Instalamos y cargamos todos los paquetes a utilizar
+
+```{r}
+install.packages("mice") 
+install.packages("ggmice")
+install.packages("dplyr")
+```
+
+```{r}
+install.packages("ggmice")
+install.packages("gtsummary")
+```
+
+```{r}
+install.packages("here")
+install.packages("rio")
+```
+
+```{r}
+install.packages("tidyverse")
+install.packages("rbibutils")
+```
+
+```{r}
+library(rbibutils)
+library(mice) 
+library(tidyverse) 
+library(here) 
+library(rio) 
+library(ggmice) 
+library(dplyr)
+library(gtsummary)
+```
+
+## Imputacion de datos
+
+Cargando los datos, usamos los datos del archivo cirrosis
+
+```{r}
+data_cirrosis <- import(here("DATA2", "cirrosis.csv"))
+```
+
+Un vistazo a los datos
+
+```{r}
+head(data_cirrosis)
+```
+
+## Realizando la imputación de datos
+
+Se realizó un análisis de valores perdidos mediante la función `colSums(is.na())`, la cual permite identificar la cantidad de datos faltantes por variable.
+
+```{r}
+colSums(is.na(data_cirrosis))
+```
+
+Incluso mejor, podemos visualizar los datos perdidos en un mapa de calor usando la función `plot_pattern()` de **ggmice**.
+
+```{r}
+data_cirrosis |>
+  select(
+      Dias_Seguimiento,
+      Estado,
+      Medicamento,
+      Edad,
+      Sexo,
+      Ascitis,
+      Hepatomegalia,
+      Aracnoides,
+      Edema,
+      Bilirrubina,
+      Colesterol,
+      Albumina,
+      Cobre,
+      Fosfatasa_Alcalina,
+      SGOT,
+      Trigliceridos,
+      Plaquetas,
+      Tiempo_Protrombina,
+      Etapa
+    ) |>
+  ggmice::plot_pattern(
+    square = TRUE,
+    rotate = TRUE
+  )
+```
+
+Se realizó un análisis visual de los valores faltantes mediante un mapa de patrones de datos perdidos. El gráfico evidenció la presencia de un total de **1,033 valores faltantes** distribuidos en diversas variables de la base de datos. Las variables de laboratorio fueron las que presentaron mayor proporción de valores ausentes, mientras que variables clínicas como *días de seguimiento* y *estado del paciente* mostraron un registro más completo.
+
+### Comparación de participantes con y sin valores perdidos
+
+Se generaron tablas descriptivas para analizar el patrón de valores perdidos en las variables Albúmina y Triglicéridos. Se clasificó a los participantes como *con* o *sin* valores perdidos en cada variable y se compararon sus características clínicas y bioquímicas mediante medias, desviaciones estándar, frecuencias y porcentajes. Finalmente, ambas tablas se fusionaron en una sola para facilitar la comparación entre los patrones de datos faltantes de ambas variables.
+
+```{r}
+tabla_albumina = data_cirrosis |> 
+  dplyr::select(
+      Dias_Seguimiento,
+      Estado,
+      Medicamento,
+      Edad,
+      Sexo,
+      Ascitis,
+      Hepatomegalia,
+      Aracnoides,
+      Edema,
+      Bilirrubina,
+      Colesterol,
+      Albumina,
+      Cobre,
+      Fosfatasa_Alcalina,
+      SGOT,
+      Trigliceridos,
+      Plaquetas,
+      Tiempo_Protrombina,
+      Etapa
+    ) |>
+  mutate(missing = factor(
+    is.na(Albumina),
+    levels = c(FALSE, TRUE),
+    labels = c("Sin valores perdidos", "Con valores perdidos")
+  )) |> 
+  tbl_summary(
+    by = missing,
+    statistic = list(
+      all_continuous()  ~ "{mean} ({sd})",
+      all_categorical() ~ "{n}    ({p}%)")
+    ) |> 
+  modify_header(label = "**Variable**",
+                all_stat_cols() ~ "**{level}**<br>N = {n} ({style_percent(p, digits=1)}%)") |> 
+  modify_caption("Características de los participantes segun valor perdido") |> 
+  bold_labels()
+
+tabla_trigliceridos = data_cirrosis |> 
+  dplyr::select(
+       Dias_Seguimiento,
+      Estado,
+      Medicamento,
+      Edad,
+      Sexo,
+      Ascitis,
+      Hepatomegalia,
+      Aracnoides,
+      Edema,
+      Bilirrubina,
+      Colesterol,
+      Albumina,
+      Cobre,
+      Fosfatasa_Alcalina,
+      SGOT,
+      Trigliceridos,
+      Plaquetas,
+      Tiempo_Protrombina,
+      Etapa
+    ) |>
+  mutate(missing = factor(
+    is.na(Trigliceridos),
+    levels = c(FALSE, TRUE),
+    labels = c("Sin valores perdidos", "Con valores perdidos")
+  )) |> 
+  tbl_summary(
+    by = missing,
+    statistic = list(
+      all_continuous()  ~ "{mean} ({sd})",
+      all_categorical() ~ "{n}    ({p}%)")
+    ) |> 
+  modify_header(label = "**Variable**",
+                all_stat_cols() ~ "**{level}**<br>N = {n} ({style_percent(p, digits=1)}%)") |> 
+  modify_caption("Características de los participantes segun valor perdido") |> 
+  bold_labels()
+
+tabla <- tbl_merge(
+  tbls = list(tabla_albumina, tabla_trigliceridos),
+  tab_spanner = c("**Albumina**", "**Trigliceridos**")
+)
+```
+
+```{r}
+tabla
+```
+
+La mayoría de características demográficas, clínicas y bioquímicas fueron similares entre los participantes con y sin valores perdidos en triglicéridos. Esto sugiere que la pérdida de datos no sigue un patrón sistemático y probablemente corresponde a un mecanismo MCAR o MAR leve. Por lo tanto, el riesgo de sesgo debido a datos faltantes es bajo. En la variable albúmina no se registraron valores perdidos.
+
+### ¿Qué variables debo incluir en el proceso de imputación?
+
+Se realizó la depuración de la base de datos original mediante la selección de las variables clínicas y de laboratorio relevantes. Asimismo, se transformaron a tipo factor todas aquellas variables categóricas (Estado, Medicamento, Sexo, ascitis, hepatomegalia, entre otras) con el fin de que el software las interprete correctamente durante el análisis estadístico. El resultado final se almacenó en un nuevo dataset denominado `input_data`, el cual se utilizó para los análisis posteriores.
+
+```{r}
+input_data =
+  data_cirrosis |>
+    dplyr::select(
+      Dias_Seguimiento,
+      Estado,
+      Medicamento,
+      Edad,
+      Sexo,
+      Ascitis,
+      Hepatomegalia,
+      Aracnoides,
+      Edema,
+      Bilirrubina,
+      Colesterol,
+      Albumina,
+      Cobre,
+      Fosfatasa_Alcalina,
+      SGOT,
+      Trigliceridos,
+      Plaquetas,
+      Tiempo_Protrombina,
+      Etapa
+    ) |> 
+  mutate( Estado = as.factor(Estado),
+      Medicamento = as.factor(Medicamento),
+      Sexo = as.factor(Sexo),
+      Ascitis = as.factor(Ascitis),
+      Hepatomegalia = as.factor(Hepatomegalia),
+      Aracnoides = as.factor(Aracnoides),
+      Edema = as.factor(Edema),
+      Etapa = as.factor(Etapa))
+```
+
+### La función `mice()` para imputar datos
+
+```{r}
+names(input_data)
+```
+
+El método de imputación la indicaremos con el argumento `method` en el mismo orden que aparecen las variables en el dataset.
+
+```{r}
+data_imputada <- mice(
+  input_data,
+  m = 19,
+  method = c(
+    "pmm",   # 1 Dias_Seguimiento
+    "",      # 2 Estado
+    "",      # 3 Medicamento
+    "pmm",   # 4 Edad
+    "",      # 5 Sexo
+    "",      # 6 Ascitis
+    "",      # 7 Hepatomegalia
+    "",      # 8 Aracnoides
+    "",      # 9 Edema
+    "pmm",   # 10 Bilirrubina
+    "pmm",   # 11 Colesterol
+    "pmm",   # 12 Albumina
+    "pmm",   # 13 Cobre
+    "pmm",   # 14 Fosfatasa_Alcalina
+    "pmm",   # 15 SGOT
+    "pmm",   # 16 Trigliceridos
+    "pmm",   # 17 Plaquetas
+    "pmm",   # 18 Tiempo_Protrombina
+    ""       # 19 Etapa
+  ),
+  maxit = 20,
+  seed = 3,
+  print = FALSE
+)
+```
+
+```{r}
+data_imputada
+```
+
+El proceso de imputación múltiple generó 19 bases de datos completas utilizando el algoritmo MICE. Se empleó el método Predictive Mean Matching (pmm) para las variables numéricas y métodos automáticos para las variables categóricas. La matriz de predictores mostró que cada variable fue imputada utilizando información de las demás variables relacionadas, lo cual aumenta la precisión y reduce el sesgo asociado a los datos faltantes
+
+## Analizando los datos imputados
+
+Para evaluar la calidad del proceso de imputación múltiple, se utilizó la función **ggmice()**, la cual permite visualizar la distribución de los valores imputados en comparación con los valores observados.
+
+Para la variable Albumina
+
+```{r}
+ggmice(data_imputada, aes(x = .imp, y = Albumina)) +
+  geom_jitter(height = 0, width = 0.25) +
+  geom_boxplot(width = 0.5, size = 1, alpha = 0.55, outlier.shape = NA) +
+  labs(
+    x = "Número de imputación",
+    y = "Albumina",
+    title = "Distribución de imputaciones para Albumina"
+  )
+```
+
+Interpretacion: El gráfico muestra la distribución de los valores observados e imputados para la variable **Albúmina**. Se aprecia que los valores imputados (imputed) se mezclan de manera adecuada con los valores originales (observed), siguiendo un patrón de dispersión y una mediana similar. No se observan valores imputados extremos ni concentraciones anormales, lo que indica que el proceso de imputación múltiple generó valores plausibles y coherentes con la distribución real de la Albúmina en la muestra.
+
+Para la variable trigliceridos
+
+```{r}
+ggmice(data_imputada, aes(x = .imp, y = Trigliceridos)) +
+  geom_jitter(height = 0, width = 0.25) +
+  geom_boxplot(width = 0.5, size = 1, alpha = 0.55, outlier.shape = NA) +
+  labs(x = "Imputation number")
+```
+
+Interpretación: El gráfico muestra la comparación entre los valores observados (en azul) y los valores imputados (en rosado) de la variable **Triglicéridos** a lo largo de las 19 imputaciones generadas. Se observa que los valores imputados mantienen una distribución similar a la de los valores originales, especialmente en términos de rangos y tendencia central.
+
+Para datos categóricos, podemos crear una tabla de dos entradas comparando la distribución de la variable con datos completos e incompletos. Esto requiere primero crear la versión "long" de la data imputada.
+
+```{r}
+data_imputada_l <- complete(data_imputada, "long", include = TRUE)
+```
+
+Ahora la tabla.
+
+```{r}
+data_imputada_l <- data_imputada_l %>% 
+  mutate(imputed = .imp > 0,
+         imputed = factor(imputed,
+                          levels = c(F,T),
+                          labels = c("Observado", "Imputado")))
+
+prop.table(table(data_imputada_l$Etapa,
+                 data_imputada_l$imputed),
+           margin = 2)
+```
+
+### Procedimientos adicionales luego de la imputación
+
+Se realizó un modelo de regresión logística multivariado sobre los datos imputados, utilizando como variable dependiente el Estado. Se incluyeron como predictores variables demográficas, clínicas y bioquímicas. Los resultados se presentaron como OR ajustados con IC95%, generados mediante la función `tbl_regression()` y resaltando valores p significativos.
+
+```{r}
+tabla_multi <-
+  data_imputada |>
+  with(
+    glm(
+      Estado ~ Edad + Sexo + Ascitis + Hepatomegalia + Aracnoides +
+        Edema + Bilirrubina + Colesterol + Albumina + Cobre +
+        Fosfatasa_Alcalina + SGOT + Trigliceridos + Plaquetas +
+        Tiempo_Protrombina + Etapa + Medicamento + Dias_Seguimiento,
+      family = binomial(link = "logit")
+    )
+  ) |>
+  tbl_regression(
+    exponentiate = TRUE,
+    label = list(
+      Edad ~ "Edad (años)",
+      Sexo ~ "Sexo",
+      Ascitis ~ "Ascitis",
+      Hepatomegalia ~ "Hepatomegalia",
+      Aracnoides ~ "Vasos Aracnoideos",
+      Edema ~ "Edema",
+      Bilirrubina ~ "Bilirrubina (mg/dL)",
+      Colesterol ~ "Colesterol (mg/dL)",
+      Albumina ~ "Albúmina (g/dL)",
+      Cobre ~ "Cobre (µg/dL)",
+      Fosfatasa_Alcalina ~ "Fosfatasa Alcalina (U/L)",
+      SGOT ~ "SGOT (U/L)",
+      Trigliceridos ~ "Triglicéridos (mg/dL)",
+      Plaquetas ~ "Plaquetas (x10³/µL)",
+      Tiempo_Protrombina ~ "Tiempo de Protrombina (seg)",
+      Etapa ~ "Etapa de la enfermedad",
+      Medicamento ~ "Uso de Medicamento",
+      Dias_Seguimiento ~ "Días de Seguimiento"
+    )
+  ) |>
+  bold_p(t = 0.05) |>
+  modify_header(estimate = "**OR ajustado**",
+                p.value  = "**p valor**")
+```
+
+```{r}
+tabla_multi
+```
+
+Interpretación: El modelo mostró que la mayoría de variables clínicas y bioquímicas no se asociaron significativamente con el desenlace. El **tiempo de protrombina**, la **fosfatasa alcalina** y los **estadios avanzados de la enfermedad** fueron los principales predictores significativos. La Etapa 3 mostró el mayor riesgo. Los días de seguimiento también fueron significativos, aunque con un efecto pequeño.
