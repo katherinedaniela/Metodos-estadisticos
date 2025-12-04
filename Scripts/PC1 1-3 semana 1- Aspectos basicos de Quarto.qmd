@@ -1,0 +1,204 @@
+---
+title: "grupo06"
+format: html
+editor: visual
+---
+
+# **PRACTICA CALIFICADA 1**
+
+INTEGRANTES:
+
+-Delgado Valencia Katherine\
+-Montalvan Valle Samantha\
+-Davila Vasquez Luis\
+-Ayllon Cruces Luis\
+-Ventura Erazo Jose Manuel
+
+## **1. INSTALADO PAQUETES PARA EXPORTAR ARCHIVO**
+
+```{r}
+install.packages("here")
+install.packages("rio") 
+```
+
+```{r}
+library(here)
+library(rio)
+```
+
+```{r}
+data_cancercervical = import(here("data1", "conoc_actit_factor_cancer_cervical.csv"))
+```
+
+## **2. UNA VEZ EXPORTADO EL DOCUMENTO REALIZAMOS FUNCIONES** CON LOS DATOS
+
+```{r}
+class(data_cancercervical)
+```
+
+**Nombre de columnas de mi data.frame**
+
+```{r}
+names(data_cancercervical)
+```
+
+```{r}
+str(data_cancercervical)
+```
+
+**Extraccion de datos**
+
+```{r}
+data_cancercervical$edad
+data_cancercervical$etnia
+data_cancercervical$procedencia
+```
+
+```{r}
+data_cancercervical$e_marital
+data_cancercervical$n_educacion
+data_cancercervical$religion
+```
+
+**Promedios**
+
+-Promedio Edad y promedio edad de relacion sexual
+
+```{r}
+mean(data_cancercervical$edad)
+mean(data_cancercervical$edad_relacion_sexual)
+```
+
+-Promedio de parejas sexuales
+
+```{r}
+mean(data_cancercervical$parejas_sex)
+```
+
+-Promedio de numero de hijos
+
+```{r}
+mean(data_cancercervical$num_hijos)
+```
+
+**Conteo por estado civil**
+
+```{r}
+table(data_cancercervical$e_marital)
+table(data_cancercervical$n_educacion)
+table(data_cancercervical$procedencia)
+```
+
+```{r}
+table(data_cancercervical$antec_fam)
+table(data_cancercervical$antec_ets)
+```
+
+```{r}
+table(data_cancercervical$met_anticoncep)
+```
+
+```{r}
+table(data_cancercervical$conocimiento)
+table(data_cancercervical$actitud)
+table(data_cancercervical$practica)
+```
+
+#### Sumatorias
+
+```{r}
+sum(data_cancercervical$num_hijos)
+sum(data_cancercervical$parejas_sex)
+```
+
+**Vectores**
+
+```{r}
+length(data_cancercervical$edad)
+```
+
+```{r}
+length(data_cancercervical$parejas_sex)
+```
+
+-Vectores numericos y de character
+
+```{r}
+class(data_cancercervical$edad)
+class(data_cancercervical$actitud)
+class(data_cancercervical$num_hijos)
+```
+
+**Factor**
+
+```{r}
+class(data_cancercervical$ocupacion_convi)
+class(data_cancercervical$met_anticoncep)
+```
+
+```{r}
+mi_lista <- list(datos = data_cancercervical)
+```
+
+```{r}
+class(mi_lista)
+```
+
+```{r}
+mi_lista
+```
+
+**Creando Vectores**
+
+```{r}
+edades <- data_cancercervical$edad
+edadrelsex <- data_cancercervical$edad_relacion_sexual
+practica <- data_cancercervical$practica
+conocimiento <- data_cancercervical$conocimiento
+religion <- data_cancercervical$religion
+etnia <- data_cancercervical$etnia
+procedencia <- data_cancercervical$procedencia
+antfamiliar <- data_cancercervical$antec_fam
+antets <- data_cancercervical$antec_ets
+parejassexuales <- data_cancercervical$parejas_sex
+```
+
+**Dimensiones**
+
+```{r}
+dim(data_cancercervical)
+```
+
+**Número de columnas**
+
+```{r}
+ncol(data_cancercervical)
+```
+
+**Vizualizar ultimas filas**
+
+```{r}
+tail(data_cancercervical)
+```
+
+**Rango**
+
+```{r}
+range(data_cancercervical$edad_relacion_sexual)
+```
+
+```{r}
+range(data_cancercervical$parejas_sex)
+```
+
+**Detectar datos unicos**
+
+```{r}
+unique(data_cancercervical$edad)
+```
+
+**Filtrar datos**
+
+```{r}
+subset(data_cancercervical, edades>25)
+```

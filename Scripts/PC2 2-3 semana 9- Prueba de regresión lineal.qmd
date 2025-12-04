@@ -1,0 +1,593 @@
+---
+title: "PRACTICA 9 Y 10
+author: GRUPO 6
+format: html
+editor: visual
+---
+
+## **PRACTICA Nº 9**
+
+# Cargar e instalar paquetes
+
+```{r}
+install.packages("car") # Para la prueba de Levene
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary)
+library(car)
+```
+
+# Cargando los datos
+
+```{r}
+data_cancercervical <- import(here("data","conoc_actit_factor_cancer_cervical.csv"))
+```
+
+# Sobre los datos para esta práctica
+
+El dataset conoc_actit_factor_cancer_cervical, conformado por 218 mujeres adultas, contiene información sobre conocimientos, actitudes y factores de riesgo asociados al cáncer de cuello uterino.
+
+Incluye 18 variables que abarcan aspectos sociodemográficos (como *edad*, *estado civil*, *nivel educativo*, *religión*, *etnia*, *procedencia* y *ocupación*), así como antecedentes personales y reproductivos (*edad de inicio de relaciones sexuales*, *número de parejas sexuales*, *número de hijos*, *uso de métodos anticonceptivos*, *antecedentes familiares* y *enfermedades de transmisión sexual*).
+
+Este conjunto de datos permite analizar el nivel de conocimiento y las actitudes frente a la prevención del cáncer de cuello uterino, además de explorar la relación entre factores personales, reproductivos y conductuales con la presencia de factores de riesgo.
+
+# 1 Regresión lineal simple
+
+## 1.1 El problema en este ejercicio
+
+El desenlace *Y* de interés para este ejercicio es la variable edad. Veamos la distribución de la variable y el promedio en en un histograma.
+
+```{r}
+data_cancer_cervical |>  
+  ggplot(aes(x = edad)) +
+  geom_histogram(color = "white", fill = "skyblue", bins = 20) +
+  labs(
+    y = "Frecuencia", 
+    x = "Edad (años)",
+    title = "Distribución de la edad de las participantes"
+  ) +
+  geom_vline(
+    xintercept = mean(data_cancer_cervical$edad, na.rm = TRUE),
+    color = "darkred",
+    size = 1.5)
+```
+
+En estos datos, el promedio de la glucosa es:
+
+```{r}
+mean(data_cancer_cervical$edad, na.rm = TRUE)
+```
+
+A partir del histograma de la edad y del valor promedio obtenido (45.4 años), se observa que la mayoría de las participantes del estudio se concentran en edades medias y adultas. Esto sugiere que la población evaluada está compuesta principalmente por mujeres en etapas de vida reproductiva tardía o perimenopáusica, grupo en el cual el tamizaje para cáncer de cuello uterino cobra especial relevancia debido al mayor riesgo acumulado de exposición a factores predisponentes.
+
+La distribución no parece simétrica, lo que podría indicar una ligera concentración hacia edades mayores respecto al promedio. Esta característica puede tener implicancias en la interpretación de los niveles de conocimiento y actitudes frente a la prevención del cáncer cervical, ya que la edad suele relacionarse con la experiencia reproductiva, el acceso a servicios de salud y la percepción del riesgo.
+
+## 1.2 Notación en el método de regresión lineal simple
+
+```{r}
+plot(num_hijos ~ edad_relacion_sexual, data = data_cancer_cervical,
+     col = "gray",
+     ylab = "Número de hijos",
+     xlab = "Edad de inicio de relaciones sexuales (años)",
+     las = 1,
+     pch = 20, 
+     font.lab = 2, font.axis = 2)
+
+# Línea de regresión lineal
+abline(lm(num_hijos ~ edad_relacion_sexual, data = data_cancer_cervical),
+       lwd = 2, col = "darkred")
+```
+
+A partir del gráfico, se puede observar que **las mujeres que iniciaron relaciones sexuales a edades más tempranas tienden a tener un mayor número de hijos**, lo cual es coherente con la relación esperada entre inicio temprano de la vida sexual y mayor tiempo de exposición reproductiva.\
+La pendiente negativa de la línea de regresión indica una **relación inversa moderada** entre ambas variables.
+
+La ecuación siguiente ecuación describe un modelo de regresión lineal simple para 𝑌 usando un predictor continuo 𝑋. $$
+Y = \beta_0 + \beta_1 X + \epsilon
+$$ Cuando ajustamos un modelo de regresión lineal simple a nuestros datos, estimamos (hallamos) los parámetros del modelo que mejor explican la relación entre las dos variables —la variable dependiente o desenlace (Y) y la variable independiente o predictor (X)—, incluyendo los coeficientes (β0,β1) y el error (ϵ), que representa la variabilidad no explicada por el modelo.
+
+En este caso, el modelo analiza la relación entre el número de hijos (Y) y la edad de inicio de las relaciones sexuales (X).\
+El intercepto (β0) representa el número promedio de hijos cuando la edad de inicio sexual es igual a cero (aunque este valor carezca de sentido práctico, tiene importancia matemática).\
+La pendiente (β1​) indica el cambio promedio en el número de hijos por cada año adicional en la edad de inicio de las relaciones sexuales.\
+Finalmente, el término de error (ϵ) recoge la variación individual no explicada únicamente por la edad de inicio sexual.
+
+Así, dado que el objetivo es estimar los parámetros β0,β1​ y ϵ, se puede afirmar que estamos ajustando un modelo de regresión lineal simple para el problema planteado —esto es, la asociación entre la edad de inicio sexual y el número de hijos en la población analizada.
+
+## 1.3 Ajustando el modelo de regresión lineal simple para nuestro problema
+
+Ajustando el modelo para nuestros datos
+
+```{r}
+modelo_cancer = lm(num_hijos ~ edad_relacion_sexual, 
+                   data = data_cancer_cervical)
+```
+
+Para ver los resultados, usamos la función summary() y dentro, el objeto modelo_ejemplo.
+
+```{r}
+summary(modelo_cancer)
+```
+
+-   <div>
+
+    -   Intercepto (β₀ = 4.61):\
+        Representa el número promedio de hijos cuando la edad de inicio de las relaciones sexuales es 0 años. Aunque este valor no tiene sentido práctico (ya que no existen edades de inicio tan bajas), sirve como punto de referencia matemático para el modelo.
+
+    </div>
+
+    -   Pendiente (β₁ = -0.1318):\
+        Indica que, por cada año adicional en la edad de inicio de las relaciones sexuales, el número promedio de hijos disminuye en aproximadamente 0.13 hijos.\
+        En otras palabras, las mujeres que comienzan su vida sexual a mayor edad tienden a tener menos hijos, lo que es coherente con el razonamiento demográfico: un inicio sexual más tardío reduce el tiempo de exposición a embarazos.
+
+    -   Coeficiente de determinación (R² = 0.053):\
+        El modelo explica alrededor del 5.3% de la variabilidad en el número de hijos. Esto sugiere que la edad de inicio sexual tiene una relación estadísticamente significativa (p \< 0.001) con el número de hijos, pero no es el único factor que influye —hay otros elementos (como estado civil, uso de anticonceptivos o nivel educativo) que también intervienen.
+
+## 1.4 Interpretando los resultados
+
+La sección Coefficients del resultado:
+
+```{r}
+summary(modelo_cancer)$coef
+```
+
+En la tabla de resultados del modelo de regresión lineal simple se muestran las estimaciones y pruebas de hipótesis para el intercepto (β0), etiquetado como *(Intercept)*, y para el coeficiente de la edad de inicio de relaciones sexuales (la pendiente, β1), etiquetado como *edad_relacion_sexual*.
+
+La columna Estimate muestra los coeficientes estimados del modelo de regresión lineal simple. Así, el modelo que mejor se ajusta tiene un intercepto de 4.6075 y una pendiente de -0.1318.
+
+La tabla también presenta el error estándar de cada estimación, el valor t y el valor p (*Pr(\>\|t\|)*).\
+El valor p del intercepto usualmente no es de interés, pero el valor p del predictor (*edad_relacion_sexual*) prueba la hipótesis nula de que no existe asociación entre el número de hijos y la edad de inicio sexual, es decir, que la pendiente es igual a cero.
+
+Dado que el valor p del predictor es 0.000578 (\< 0.001), se rechaza la hipótesis nula, lo que indica que existe una asociación estadísticamente significativa entre ambas variables.\
+La pendiente negativa sugiere que a mayor edad de inicio de las relaciones sexuales, menor número promedio de hijos.
+
+Finalmente, el valor R² = 0.053 representa la bondad de ajuste del modelo. Este valor indica que aproximadamente el 5.3% de la variabilidad en el número de hijos se explica por la edad de inicio de las relaciones sexuales. Si bien la asociación es significativa, la proporción de variación explicada es baja, lo que sugiere que otros factores también influyen en el número de hijos.
+
+## 1.5 ¿Cómo reportar los resultados del ajuste del modelo de regresión lineal simple?
+
+```{r}
+theme_gtsummary_language("es")
+
+tabla_reporte <- modelo_cancer |> 
+  tbl_regression(
+    intercept = TRUE,
+    estimate_fun = function(x) style_sigfig(x, digits = 4),
+    pvalue_fun   = function(x) style_pvalue(x, digits = 3),
+    label = list(edad_relacion_sexual ~ "Edad de inicio de relaciones sexuales (años)")
+  ) |>
+  modify_caption("Regresión del número de hijos en función de la edad de inicio de relaciones sexuales")
+
+tabla_reporte
+```
+
+**Exportamos la tabla**
+
+```{r}
+tabla_reporte |> 
+  as_flex_table()  |> 
+  flextable::save_as_docx(path = "tabla_reporte.docx")
+```
+
+# 2 Prueba t de Student para muestras independientes
+
+## 2.1 ¿Cuándo usar la prueba t de Student para muestras independientes?
+
+-   Cuando los dos grupos de muestras a comparar han sido muestreadas de una distribución normal. Aquí podemos usar la prueba de Shapiro-Wilk.
+
+-   Cuando las varianzas de los dos grupos son iguales. Esto puede ser evaluado con la prueba F.
+
+Usualmente, la hipótesis de la prueba t de Student son:
+
+-   Hipótesis nula (H₀): No hay diferencia entre las medias de los dos grupos. $$
+    H_0: \mu_1 = \mu_2
+    $$
+-   Hipótesis alternativa (H₁): Hay una diferencia entre las medias de los dos grupos. $$
+    H_1: \mu_1 \neq \mu_2
+    $$
+
+## 2.2 Sobre los datos para esta práctica
+
+El dataset conoc_actit_factor_cancer_cervical, conformado por 218 mujeres adultas, contiene información sobre conocimientos, actitudes y factores de riesgo asociados al cáncer de cuello uterino.
+
+Incluye 18 variables que abarcan aspectos sociodemográficos (como *edad*, *estado civil*, *nivel educativo*, *religión*, *etnia*, *procedencia* y *ocupación*), así como antecedentes personales y reproductivos (*edad de inicio de relaciones sexuales*, *número de parejas sexuales*, *número de hijos*, *uso de métodos anticonceptivos*, *antecedentes familiares* y *enfermedades de transmisión sexual*).
+
+## 2.3 Resumen y visualización
+
+Resumen
+
+Antes de realizar la prueba t de Student es importante conocer la distribución de los datos e identificar si hay valores perdidos o atípicos. Empecemos por el resumen:
+
+```{r}
+data_cancer_cervical |> 
+group_by(e_marital) |> 
+  summarise(
+    count = n(),
+    mean = mean(num_hijos, na.rm = TRUE),
+    sd   = sd(num_hijos, na.rm = TRUE)
+  )
+```
+
+Visualización
+
+```{r}
+data_cancer_cervical |>  
+  filter(!is.na(e_marital) & !is.na(num_hijos)) |> 
+  ggplot(aes(x = e_marital, y = num_hijos)) +
+  geom_boxplot() +
+  labs(
+    x = "Estado civil",
+    y = "Número de hijos"
+  )
+```
+
+## 2.4 Pruebas preliminares para evaluar los supuestos de la prueba t de Student
+
+Supuesto 1: los datos deben haber sido muestreados de una distribución normal.
+
+Para esto, usamos la prueba de Shapiro-wilk.
+
+```{r}
+data_cancer_cervical |> 
+   filter(e_marital == "Casada") |> 
+  summarise(shapiro = list(shapiro.test(num_hijos))) |> 
+  pull(shapiro)
+```
+
+```{r}
+data_cancer_cervical |> 
+  filter(e_marital == "Casada") |> 
+  summarise(shapiro = list(shapiro.test(num_hijos))) |> 
+  pull(shapiro)
+```
+
+#### 1. Grupo: Soltera
+
+> La prueba de Shapiro-Wilk para el número de hijos en mujeres con estado civil Soltera arrojó un valor p = 0.012.
+>
+> -   Si p ≥ 0.05 → Se concluye que la distribución del número de hijos no se desvía significativamente de la normalidad.
+>
+> -   Si p \< 0.05 → Se concluye que el número de hijos no sigue una distribución normal en este grupo.
+>
+>     #### 2. Grupo: Casada
+>
+>     > La prueba de Shapiro-Wilk para el número de hijos en mujeres con estado civil Casada dio un valor p = 0.2.
+>     >
+>     > -   Si p ≥ 0.05 → La distribución del número de hijos puede considerarse normal en este grupo.
+>     >
+>     > -   Si p \< 0.05 → La distribución del número de hijos no es normal en este grupo.
+
+```{r}
+var.test(num_hijos ~ e_marital, data = data_cancer_cervical)
+```
+
+## 2.5 Realizamos la prueba t para nuestros datos.
+
+```{r}
+t.test(num_hijos ~ e_marital, data = data_cancer_cervical, var.equal = TRUE)
+```
+
+**Interpretando los resultados**
+
+Se realizó una prueba t de Student para muestras independientes con el objetivo de comparar el promedio de número de hijos (num_hijos) entre los diferentes estados civiles (e_marital).\
+Antes de ello, se asumió igualdad de varianzas debido a que se especificó `var.equal = TRUE`.
+
+> **Hipótesis:**
+>
+> -   **H₀ (nula):** El número promedio de hijos es igual entre los grupos de estado civil
+>
+> -   **H₁ (alternativa):** El número promedio de hijos es diferente entre los grupos de estado civil.
+
+# 3 Análisis de Varianza (ANOVA)
+
+## 3.1 Resumen y visualización
+
+Resumen
+
+Antes de realizar la prueba de ANOVA es importante conocer la distribución de los datos e identificar si hay atípicos. Empecemos por el resumen:
+
+```{r}
+group_by(data_cancer_cervical, conocimiento) |> 
+ summarise(
+    count = n(),
+    mean = mean(num_hijos, na.rm = TRUE),
+    sd = sd(num_hijos, na.rm = TRUE),
+    min = min(num_hijos, na.rm = TRUE),
+    max = max(num_hijos, na.rm = TRUE)
+  )
+```
+
+Visualización
+
+```{r}
+data_cancer_cervical |>  
+  filter(!is.na(conocimiento) & !is.na(edad_relacion_sexual)) |> 
+  ggplot(aes(y = conocimiento, x = edad_relacion_sexual)) +
+  geom_boxplot() +
+  labs(y = "conocimiento", x = "edad_relacion_sexual")
+```
+
+## 3.2 Pruebas preliminares para evaluar los supuestos del ANOVA
+
+```{r}
+data_cancer_cervical <- data_cancer_cervical |>
+    mutate(conocimiento = as.factor(conocimiento))
+```
+
+Supuesto 1: los datos deben haber sido muestreados de una distribución normal.
+
+Para esto, usamos la prueba de Shapiro-wilk.
+
+```{r}
+data_cancer_cervical |> 
+  filter(conocimiento == "alto") |> 
+  summarise(shapiro = list(shapiro.test(edad_relacion_sexual))) |> 
+  pull(shapiro)
+```
+
+```{r}
+data_cancer_cervical |> 
+  filter(conocimiento == "medio") |> 
+  summarise(shapiro = list(shapiro.test(edad_relacion_sexual))) |> 
+  pull(shapiro)
+```
+
+```{r}
+data_cancer_cervical |> 
+  filter(conocimiento == "negativo") |> 
+  summarise(shapiro = list(shapiro.test(edad_relacion_sexual))) |> 
+  pull(shapiro)
+```
+
+Supuesto 2: Las varianzas de los dos grupos son iguales Para esto podemos usar la prueba de Levene para evaluar la homogeneidad de varianzas. Esto esta implementado en la función var.test()
+
+```{r}
+leveneTest(edad_relacion_sexual ~ conocimiento, data = data_cancer_cervical)
+```
+
+## 3.3 Realizamos la prueba de ANOVA de una vía para nuestros datos.
+
+```{r}
+res_anova = aov(edad_relacion_sexual ~ conocimiento, data = data_cancer_cervical)
+```
+
+```{r}
+summary(res_anova)
+```
+
+```{r}
+TukeyHSD(res_anova)
+```
+
+El análisis Tukey compara los promedios de la edad de inicio de relaciones sexuales entre los distintos niveles de conocimiento sobre el cáncer cervical (“alto”, “medio”, “bajo” y “no conoce”).
+
+En todas las comparaciones del cuadro, el valor p ajustado (p adj) es mayor a 0.05.\
+Esto significa que no existen diferencias estadísticamente significativas entre los grupos en términos de la edad de inicio de relaciones sexuales.
+
+Por ejemplo, la comparación bajo vs alto muestra una diferencia de medias de -0.52 años (aprox. medio año), pero con p = 0.54 → no significativa.
+
+La comparación no conoce vs alto tiene p = 0.99 → tampoco significativa.
+
+Todas las demás comparaciones (medio vs alto, medio vs bajo, etc.) también presentan p \> 0.05, confirmando que las diferencias observadas podrían deberse al azar.
+
+## **PRACTICA Nº 10**
+
+# Cargar e instalar paquetes
+
+```{r}
+library(tidyverse) 
+library(here) 
+library(rio) 
+library(gtsummary) 
+library(car)
+```
+
+## Cargando los datos
+
+```{r}
+data_cancer_cervical <- import(here("data", "conoc_actit_factor_cancer_cervical.csv"))
+```
+
+```{r}
+CONOCIMIENTO <- import(here("data", "conoc_actit_factor_cancer_cervical.csv"))
+```
+
+## Sobre los datos para esta práctica
+
+## 1.1 Aspectos básicos para la interpretación la regresión logística
+
+## 1.1 El problema en este ejercicio
+
+El desenlace de interés en este análisis es la edad de inicio de relaciones sexuales (`edad_relacion_sexual`). Nuestro objetivo es evaluar la relación entre la edad de inicio de relaciones sexuales y el nivel de conocimiento sobre cáncer de cuello uterino (`conocimiento`) en las participantes del estudio.
+
+En este contexto, el nivel de conocimiento actúa como la variable explicativa o de exposición, categorizada en niveles (alto, medio, bajo y no conoce), mientras que la edad de inicio de relaciones sexuales es tratada como una variable numérica continua. El análisis permitirá determinar si existen diferencias estadísticamente significativas en la edad de inicio de relaciones sexuales según el nivel de conocimiento sobre cáncer cervical.
+
+## 1.2 Estimando OR usando regresión logística para un predictor categórico
+
+Antes de estimar el OR (odds ratio) mediante regresión logística, es necesario asegurarnos de que la variable tabaquismo esté codificada como una variable categórica en R. Además, establecemos la categoría "No" como el nivel de referencia, de manera que el modelo estime el OR de ser fumadora en comparación con no ser fumadora.
+
+De igual forma, convertimos la variable conocimiento en factor y definimos como referencia la categoría "alto", permitiendo así interpretar los OR de los otros niveles de conocimiento (medio, bajo y no conoce) en relación con el nivel alto de conocimiento sobre cáncer cervical.
+
+De esta manera, el modelo logístico nos permitirá evaluar si los niveles más bajos de conocimiento se asocian con mayor probabilidad de tabaquismo entre las participantes del estudio.
+
+```{r}
+data_cancer_cervical_1 <- data_cancer_cervical |> 
+  mutate(
+    e_marital = relevel(e_marital, ref = "soltera"),
+    conocimiento = relevel(as.factor(conocimiento), ref = "alto")
+  )
+```
+
+A continuación, usamos la función `glm()`, general linear model, con el argumento family = binomial para ajustar una regresión logística y `summary()` para ver los resultados.
+
+```{r}
+regre_log <- glm(e_marital ~ conocimiento,         
+                 family = binomial,                 
+                 data = data_cancer_cervical_1)
+
+summary(regre_log)
+```
+
+El coeficiente de regresión para *hipertSi* representa el logaritmo del OR para fallecer, comparando pacientes hipertensos con pacientes no hipertensos.
+
+Para obtener el OR en sí (como usualmente se reporta en los estudios), exponenciamos el coeficiente usando la función exp()
+
+```{r}
+exp(coef(regre_log)[-1]) # [-1] elimina la primera fila, al intercepto.
+```
+
+Usamos la función `confint()` para calcular los intervalos de confianza (IC) al 95% para el coeficientes de regresión, y exponenciamos estos valores para obtener los IC del 95% para los OR.
+
+```{r}
+exp(confint(regre_log))[-1, , drop=F]
+```
+
+## 1.4 Ajustamos el modelo
+
+```{r}
+regre_log_1 <- glm(actitud ~ edad_relacion_sexual,
+                   family = binomial,
+                   data = data_cancer_cervical_1)
+summary(regre_log_1)$coefficients
+```
+
+El coeficiente de regresión para la edad (0.0583) indica cuánto cambia el logaritmo de las odds del desenlace por cada aumento de un año en la edad. Si convertimos esto a un OR exponenciandolos, obtenemos:
+
+```{r}
+exp(coef(regre_log_1)[-1])
+```
+
+Finalmente, calcula un intervalo de confianza del 95% para el OR usando `confint()` y exponenciando los resultados.
+
+```{r}
+exp(confint(regre_log_1)[-1,])
+```
+
+## 1.8 Cómo reportar los resultados de una regresión logística para un reporte científico.
+
+Aquí usamos funciones que ya hemos empleado en sesiones anteriores. tbl_uvregression() es la función que permite producir tablas con resultados de la regresión logística. Como argumento incluye el tipo de regresión, variables y otras especificaciones.
+
+```{r}
+theme_gtsummary_language(language = "es")
+```
+
+```{r}
+tabla_reg_logi <- data_cancer_cervical_1 |> 
+  tbl_uvregression(
+    y = actitud,
+    include = c(edad_relacion_sexual, e_marital, conocimiento),
+    method = glm,
+    method.args = list(family = binomial),
+    exponentiate = TRUE,       # Mostrar OR
+    conf.int = TRUE,           # Mostrar IC95%
+    hide_n = TRUE,
+    add_estimate_to_reference_rows = FALSE,
+    pvalue_fun = ~ style_pvalue(.x, digits = 3),
+    estimate_fun = ~ style_number(.x, digits = 2),
+    label = list(
+      edad_relacion_sexual ~ "Edad de primera relación sexual (años)",
+      e_marital ~ "Estado civil",
+      conocimiento ~ "Nivel de conocimiento"
+    )
+  ) |> 
+  bold_labels() |> 
+  bold_p(t = 0.05) |> 
+  modify_header(estimate = "**OR no ajustado**", p.value = "**Valor P**")
+
+tabla_reg_logi
+```
+
+Imprime la tabla
+
+```{r}
+tabla_reg_logi
+```
+
+## 2 Regresión de Poisson
+
+La regresión de Poisson es un modelo de regresión para datos de conteo y de tasas. Al igual que el modelo de regresión logística, este es un tipo de modelo lineal generalizado que se usa cuando el desenlace (variable dependiente) es un conteo. Aunque los datos de conteo y tasas son muy comunes en medicina y ciencias de la salud, la regresión de Poisson está subutilizada en la investigación médica.
+
+Básicamente, la regresión de Poisson modela la relación lineal entre:
+
+Desenlace: variable de conteo (por ejemplo, número de hospitalizaciones, paridad, lesiones cancerosas, ataques asmáticos). Esta variable se transforma a escala de logaritmo natural.
+
+Predictores/variables independientes: variables numéricas (por ejemplo, edad, presión arterial) y variables categóricas (por ejemplo, raza, género, nivel educativo).
+
+Usando la regresión de poisson, podemos evaluar: La relación entre el número de ataques asmáticos en el último año y los factores sociodemográficos.
+
+En la sección anterior, reportamos como medida de efecto OR para la regresión logística. Para la regresión de Poisson, al tomar el exponente del coeficiente, obtenemos la razón de tasas (rate ratio, RR), también conocida como razón de tasas de incidencia (incidence rate ratio, IRR).
+
+## 2.1 Sobre los datos para esta práctica
+
+## 2.2 El problema en este ejercicio
+
+Usando regresión de Poisson evaluaremos la relación entre el número de ataques asmáticos (variable episod_asma) en el último año y los factores sociodemográficos.
+
+## 2.3 Ajustamos modelos de regresión de Poisson
+
+Ahora, ajustamos modelos de regresión de Poisson para las 3 variables predictoras usando la función glm(). Seguido a esto, usamos summary() para ver los resultados.
+
+Para la variable sexo
+
+```{r}
+reg_poisson1 <- glm(parejas_sex ~ conocimiento, 
+                    data = asma, 
+                    family = "poisson")
+```
+
+El modelo Poisson estima la relación entre el número de parejas sexuales (`parejas_sex`) y el nivel de conocimiento (`conocimiento`).
+
+-   Si el coeficiente asociado a `conocimiento` es negativo, significa que a mayor nivel de conocimiento sobre el cáncer cervical, menor número de parejas sexuales (efecto protector)
+
+-   Si el coeficiente es positivo, implica que un mayor conocimiento se asocia a más parejas sexuales (posible confusión o influencia de otro factor).
+
+## 2.4 Cómo interpretar y reportar los resultados de una regresión de Poisson
+
+Como en la sección anterior, usamos tbl_regression() para generar una tabla con los resultados. Aquí, para la interpretación, exponenciamos los coeficientes para obtener la razón de tasas de incidencia (IRR).
+
+`tabla_reg_poisson <- cancer |>`
+
+`tbl_uvregression(`
+
+`include = c(antec_ets, conocimiento, actitud),`
+
+`y = parejas_sex,`
+
+`method = glm,`
+
+`method.args = list(family = poisson),`
+
+`exponentiate = TRUE,`
+
+`conf.int = TRUE,`
+
+`hide_n = TRUE,`
+
+`add_estimate_to_reference_rows = FALSE,`
+
+`pvalue_fun = ~ style_pvalue(.x, digits = 3),`
+
+`estimate_fun = ~ style_number(.x, digits = 2),`
+
+`label = list(`
+
+`antec_ets ~ "Antecedente de ETS",`
+
+`conocimiento ~ "Nivel de conocimiento",`
+
+`actitud ~ "Actitud preventiva"`
+
+`)`
+
+`) |>`
+
+`bold_labels() |>`
+
+`bold_p(t = 0.05) |>`
+
+`modify_header(estimate = "**IRR no ajustado**", p.value = "**Valor P**")`
+
+Imprime la tabla
+
+`{r} tabla_reg_poisson}`

@@ -1,0 +1,384 @@
+---
+title: "Grupo 06"
+author: "Delgado Valencia Katherine"
+format: html
+editor: visual
+---
+
+# 1 Instalar Los paquetes y el dataset de cancer cervical
+
+Usaremos la función `install.packages()` para instalar el paquete `finalfit` y `flextable` y la función library para cargar los paquetes necesarios. Los paquetes finalfit y flextable serán necesarios para generar tablas descriptivas.
+
+```{r}
+# install.packages("finalfit")
+# install.packages("flextable")
+# install.packages("gtsummary")
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(rio)
+library(gtsummary) ## Para la "Tabla 1"
+library(finalfit) ## Para recodificar
+library(flextable) ## Para exportar tablas
+```
+
+Importaremos el dataset a utilizar
+
+```{r}
+data_cancer_cervical=import(here("data","conoc_actit_factor_cancer_cervical.csv"))
+```
+
+# Realizaremos el analisis descriptivo El "paso 0" 
+
+Antes de comenzar con el análisis descriptivo de los datos, es fundamental realizar una revisión inicial para identificar y corregir posibles errores de codificación, así como para tratar los valores perdidos o atípicos.
+
+```{r}
+str(data_cancer_cervical)
+```
+
+El archivo conoc_actit_factor_cancer_cervical.csv contiene un total de 18 variables y 218 observaciones.
+
+# Resumen de variables categóricas
+
+Ahora resumiremos las variables categóricas a través de sus distribuciones, lo que implica calcular la frecuencia de cada una de sus categorías.
+
+```{r}
+table(data_cancer_cervical$conocimiento, useNA = "ifany")
+```
+
+Un resumen igual de útil es la frecuencia relativa. Podemos realizar esto al combinar la función `prop.table()` y `table()`. La primera función calcula la proporción.
+
+```{r}
+prop.table(table(data_cancer_cervical$conocimiento, useNA = "ifany"))
+```
+
+Se observa que la mayor proporción de participantes se concentra en los niveles alto (38.9%) y medio (30.7%), seguidos por el nivel bajo (27.5%), mientras que solo un 2.7% manifestó no conocer acerca del tema. Esto refleja que, en general, existe un nivel de conocimiento favorable en la muestra, aunque todavía se identifica un grupo considerable con conocimiento limitado.
+
+Una forma alternativa de calcular la frecuencia simple y relativa es usando la función `count()` de `tidyverse`.
+
+```{r}
+data_cancer_cervical |> 
+  count(conocimiento, sort = TRUE)
+```
+
+# Resumen de Variables continuas
+
+## Media
+
+Se calculara la media usando la funcion mean
+
+Segun el resultado, la mayoria de personas han tenido relaciones sexuales a los 19 años.
+
+```{r}
+mean(data_cancer_cervical$edad_relacion_sexual, na.rm = TRUE)
+```
+
+## La desviación estandard
+
+Calculamos la desviación estandard usando la función `sd()`.
+
+```{r}
+sd(data_cancer_cervical$edad, na.rm = TRUE)
+```
+
+## Otras medidas de resumen
+
+Otras medidas útiles para describir datos numéricos incluyen la mediana, el rango intercuartílico y el rango (mínimo y máximo).
+
+```{r}
+median(data_cancer_cervical$edad, na.rm = TRUE)
+```
+
+```{r}
+min(data_cancer_cervical$edad_relacion_sexual, na.rm = TRUE)
+```
+
+```{r}
+IQR(data_cancer_cervical$edad, na.rm = TRUE)
+```
+
+## ¿Mediana o media? ¿Desviación estandard o rango intercuartílo?
+
+La respuesta a la pregunta sobre cuál medida medida descriptiva es conveniente usar, es, dependende de la distribución. Para variables numéricas que son similares a la distribución normal, es conveniente usar la media y la desviación estandard. Para variables numéricas con distribuciones distinta a la normal, podemos usar otras como la mediana o el rango intercuartílico.
+
+```{r}
+par(mfrow=c(1,2))
+hist(data_cancer_cervical$num_hijos)
+hist(data_cancer_cervical$parejas_sex)
+```
+
+El análisis de los histogramas de las variables num_hjps (número de hijos) y parejas_set (parejas sexuales) del estudio oncológico revela que ambas comparten una distribución similar, caracterizada por una marcada asimetría.
+
+La mayoría de los individuos presentan valores bajos en ambas variables, con la frecuencia más alta concentrada en el rango de 0 a 1. Esta frecuencia disminuye progresivamente hacia valores más altos, formando una cola derecha extensa pero con pocas observaciones. Este patrón es típico en variables de conteo dentro de estudios epidemiológicos.
+
+```{r}
+mean(data_cancer_cervical$parejas_sex, na.rm = T)
+```
+
+```{r}
+median(data_cancer_cervical$parejas_sex, na.rm = T)
+```
+
+```{r}
+mean(data_cancer_cervical$num_hijos, na.rm = T)
+```
+
+```{r}
+median(data_cancer_cervical$num_hijos, na.rm = T)
+```
+
+## La función `summary()`
+
+`summary()` es una función de R que permite calcular varias medidas estadísticas a la vez. Incluyendo las que ya hemos visto arriba. Abajo, un ejemplo con la variable Glucosa
+
+```{r}
+summary(data_cancer_cervical$edad)
+```
+
+La población estudiada presenta una edad promedio de 45.41 años, con un rango que va desde los 25 hasta los 67 años. La mediana de 48 años indica que la mitad de las participantes tienen menos de esta edad, lo que sugiere una distribución equilibrada entre mujeres más jóvenes y mayores.
+
+El análisis de los cuartiles revela que el 25% de la población tiene 38 años o menos, mientras que el 25% más mayor supera los 54 años. Este rango etario coincide con el grupo de riesgo principal para el cáncer endocervical, que afecta especialmente a mujeres entre 40 y 55 años.
+
+La edad media de 45.41 años sugiere que la mayoría de las participantes tienen la madurez suficiente para haber estado expuestas a información sobre salud reproductiva a lo largo de su vida. Sin embargo, también las diferencias generacionales en el acceso a educación sanitaria y programas de prevención.
+
+La presencia de mujeres desde 25 años permite evaluar el conocimiento en población joven, donde la prevención temprana es crucial. Por otro lado, las participantes mayores de 54 años representan un grupo con mayor experiencia vital que podría tener conocimientos más consolidados sobre salud cervical.
+
+Este perfil de edad resulta adecuado para estudiar el conocimiento del cáncer endocervical, ya que abarca tanto a mujeres en edad de riesgo activo como a aquellas que podrían ser fuentes de información para generaciones más jóvenes dentro de sus comunidades.
+
+# Resumen por otra variable
+
+En R, podemos calcular esto usando la función `group_by()` y `summarize()`. La función `group_by()` es la primera de varias funciones de `tidyverse` que usaremos frecuentemente. Esta función agrupa las observaciones de acuerdo a una o más variables y este agrupamiento puede ser usado para obtener resultados por por estos subgrupos.
+
+El código abajo agrupa a los participantes según la variable grupo_edad (los grupos de edad: \<50, \<=25, 26-35, 36-50) y en la función `summarize()` se realiza el conteo del número de observaciones y el porcentaje.
+
+```{r}
+data_cancer_cervical |> 
+  group_by(edad) |> 
+  summarise(
+    n_casos = n(),
+    porcentaje = (n_casos / nrow(data_cancer_cervical)) * 100)
+```
+
+Aquí otro ejemplo con la variable `conocimiento.` Aquí, `group_by()` agrupa a los pacientes según estado de conocimiento y con `summarize()` calcula el promedio de edad de cada grupo.
+
+```{r}
+data_cancer_cervical |>  
+  group_by(conocimiento) |> 
+  summarize(promedio = mean(edad, na.rm = T))
+```
+
+El análisis revela una relación directa entre la edad y el conocimiento sobre cáncer endocervical. Las mujeres con mayor conocimiento tienen una edad promedio de 47.32 años, mientras que las que no conocen sobre la enfermedad son significativamente más jóvenes, con 40.50 años en promedio.
+
+Existe una diferencia notable de casi 7 años entre los grupos extremos de conocimiento. Esta brecha sugiere que la experiencia vital y la exposición acumulada a información de salud influyen directamente en el nivel de comprensión sobre esta enfermedad.
+
+Los grupos con conocimiento medio y bajo presentan edades similares (44.12 y 44.63 años respectivamente). Esto indica que alrededor de los 44 años existe un punto crítico donde las mujeres adquieren conocimientos básicos pero aún no alcanzan un nivel alto de comprensión.
+
+El hallazgo más preocupante es que las mujeres más jóvenes son las menos informadas. Esto resalta la urgente necesidad de implementar programas educativos dirigidos específicamente a mujeres menores de 40 años, que son precisamente las que más se beneficiarían de la prevención temprana.
+
+```{r}
+data_cancer_cervical |>  
+  group_by(conocimiento, edad) |> 
+  summarize(promedio = mean(parejas_sex, na.rm = T))
+```
+
+Podemos calcular varios tipos de resúmenes a la vez para los datos agrupados. Aquí, además del promedio, se calcula la desviación estandard y el valor máximo de cada grupo.
+
+```{r}
+data_cancer_cervical |>  
+  group_by(conocimiento, edad_relacion_sexual) |> 
+  summarize(promedio_edad = mean(edad, na.rm = TRUE),
+            DE = sd(edad, na.rm = TRUE),
+            max_valor_edad = max(edad, na.rm = TRUE))
+```
+
+Al calcular los resúmenes estadísticos podemos hacer filtros de modo que el cálculo de haga para un grupo en específico y estos se muestren en formas de columnas.
+
+```{r}
+data_cancer_cervical |>  
+  group_by(conocimiento) |> 
+  summarize( max_edad = max(edad, na.rm = TRUE),
+    min_edad = min(edad, na.rm = TRUE),
+    prom_edad = mean(edad, na.rm = TRUE),
+    n_pacientes = n())
+```
+
+La función `filter()` de tidyverse es otra función para el manejo de datasets. Esta función permite filtrar las observaciones en base a una variable.
+
+En R, podemos usar filter para filtrar observaciones y luego realizar resúmenes en estos.
+
+```{r}
+data_cancer_cervical |> 
+  filter(conocimiento == "alto") |> 
+  group_by(edad) |> 
+  summarize(
+    p25_parejas = quantile(parejas_sex, probs = 0.25, na.rm = TRUE),
+    p50_parejas = quantile(parejas_sex, probs = 0.50, na.rm = TRUE),
+    p75_parejas = quantile(parejas_sex, probs = 0.75, na.rm = TRUE)
+  )
+```
+
+Esto sugiere que, en esta población, el número de parejas sexuales no está fuertemente asociado con la edad, sino que puede estar más relacionado con factores culturales, sociales o de comportamiento que se mantienen constantes a lo largo de la vida adulta.
+
+Otra función de `tidyverse` para manipular datasets es `across()`. Esta función permite manipular multiples variables a la vez (multiples columnas a la vez).
+
+Para el resumen de datos, podemos usar `group_by()` para agrupar pacientes según una variable y luego usar across dentro de `summarize()` para realizar resumenes para multiples variables. Hay dos argumentos en la función `across()`: `.cols =` y `.fns =`. La primera es para especificar cuales serán las columnas a usar y la segunda cuales funciones se aplicarán para las variables seleccionadas.
+
+```{r}
+data_cancer_cervical |> 
+  group_by(conocimiento) |> 
+  summarize(across(.cols = c(edad_relacion_sexual,parejas_sex,edad,num_hijos),
+                   .fns = list("promedio" = mean, "DE" = sd, 
+                               "máximo" = max),
+                   na.rm = TRUE))
+```
+
+Podemos mejorar incluso más el código de arriba añadiendo la función `where()` al argumento `.cols =`. la función `where()` de tidyverse selecciona las variables con una característica específica, por ejemplo, que sea numérica.
+
+```{r}
+data_cancer_cervical |> 
+  group_by(conocimiento) |> 
+  summarize(across(.cols = where(is.numeric),
+                   .fns = list("promedio" = mean, "DE" = sd, 
+                               "máximo" = max),
+                   na.rm = TRUE))
+```
+
+# Una pausa para hablar sobre el select()
+
+Usaremos la función `select()`, una función más para el manejo de datasets. Especificamente, `select()` extrae variables (columnas) a una nueva tabla.
+
+# La "Tabla 1" con el paquete de `gtsummary`
+
+En investigación de ciencias en la salud los estudios epidemiológicos son comunes. Estos estudios muestran la descripción de la muestra o población en estudio en la primera tabla, la tabla 1. En la tabla 1 es entonces donde tendremos que mostrar los resúmenes descriptivos que creamos pertinentes. La función `tbl_summary()` del paquete `gtsummary` facilita la construcción de esta tabla.
+
+El código abajo muestra como podemos construir la tabla 1. Para este ejemplo, se seleccionan 5 variables.
+
+```{r}
+data_cancer_cervical |> 
+  select(edad_relacion_sexual,parejas_sex,edad,num_hijos,n_educacion,procedencia,ocupacion) |> 
+  tbl_summary()
+```
+
+La población estudiada presenta un perfil de mujeres adultas con buen nivel educativo, mayoritariamente empleadas, con iniciación sexual alrededor de los 19 años y un número moderado de parejas sexuales. La distribución equilibrada entre procedencia rural y urbana sugiere una muestra representativa de diferentes contextos geográficos.
+
+La función `tbl_summary()` acepta argumentos para modificar o añadir información a la tabla descriptiva. Por ejemplo, el argumento `by =` permite describir a los pacientes según el conocimiento.
+
+```{r}
+data_cancer_cervical |> 
+  select(edad_relacion_sexual,parejas_sex,edad,num_hijos,n_educacion,procedencia,ocupacion) |> 
+  tbl_summary(
+    by = edad
+  )
+```
+
+Existe una evolución demográfica esperada donde la paridad aumenta con la edad, manteniéndose constantes otros factores como la educación y procedencia. La relativa homogeneidad en edad de iniciación sexual sugiere patrones culturales consistentes across generaciones en esta población.
+
+Pero las tablas deben ser autoexplicativas. Abajo, se muestra cómo configurar el idioma y el estilo de la tabla (esto es secundario, el modo por defecto es lo suficientemente bueno).
+
+```{r}
+theme_gtsummary_language(language = "es") # idioma es = español
+theme_gtsummary_journal(journal = "jama")
+```
+
+Adicionalmente, es importante que cuando se construya la tabla 1 para un reporte, las variables deben estar correctamente codificadas y se deben corregir errores en los nombres. El código abajo muestra la las modificaciones necesarias para el dataset data_diabetes. Las funciones mostradas aquí las hemos usado en sesiones anteriores, excepto `ff_label()` del paquete `finalfit` la cual es una función que facilita añadir las etiquetas a las variables.
+
+```{r}
+data_cancer_cervical_0 <- data_cancer_cervical |>
+  mutate(edad = ff_label(edad, "edad (años)"),
+    
+    grupo_edad = case_when(
+      edad <= 25 ~ "≤25",
+      edad <= 35 ~ "26-35", 
+      edad <= 50 ~ "36-50",
+      TRUE ~ ">50"
+    ) |> 
+      as.factor() |>
+      fct_relevel("≤25", "26-35", "36-50", ">50") |> 
+      ff_label("Grupo etario"),
+    
+    e_marital = as.factor(e_marital) |>
+      fct_relevel("soltera", "casada", "conviviente", "viuda") |> 
+      ff_label("Estado marital"),
+    
+    n_educacion = as.factor(n_educacion) |>
+      fct_relevel("primaria", "secundaria", "superior") |> 
+      ff_label("Nivel educativo"),
+    
+    procedencia = as.factor(procedencia) |>
+      fct_recode("Urbano" = "urbano",
+                 "Rural" = "rural") |>
+      ff_label("Procedencia"),
+    
+    antec_fam = as.factor(antec_fam) |>
+      fct_recode("Sí" = "si",
+                 "No" = "no") |>
+      fct_relevel("Sí", "No") |> 
+      ff_label("Antecedentes familiares de cáncer"),
+    
+    antec_ets = as.factor(antec_ets) |>
+      fct_recode("Sí" = "si",
+                 "No" = "no") |>
+      fct_relevel("Sí", "No") |> 
+      ff_label("Antecedentes de ETS"),
+    
+    conocimiento = as.factor(conocimiento) |>
+      fct_relevel("alto", "medio", "bajo", "no conoce") |> 
+      ff_label("Nivel de conocimiento"),
+   
+    actitud = as.factor(actitud) |>
+      fct_recode("Positiva" = "positiva",
+                 "Negativa" = "negativa") |>
+      fct_relevel("Positiva", "Negativa") |> 
+      ff_label("Actitud"),
+    
+    practica = as.factor(practica) |>
+      fct_recode("Correcta" = "correcta",
+                 "Incorrecta" = "incorrecta") |>
+      fct_relevel("Correcta", "Incorrecta") |> 
+      ff_label("Práctica")
+  )
+```
+
+Ahora, generamos la tabla según estado de diabetes.
+
+```{r}
+data_cancer_cervical_0 |> 
+  select(edad_relacion_sexual, parejas_sex, edad, num_hijos, n_educacion, procedencia, ocupacion, conocimiento) |> 
+  tbl_summary(by = conocimiento) 
+```
+
+Los datos sugieren fuertemente que el nivel de conocimiento sobre la característica en estudio (probablemente salud sexual/reproductiva) está asociado a factores socioeconómicos y educativos. Las mujeres con mayor nivel educativo y que forman parte de la población empleada urbana tienden a tener un conocimiento más alto. El pequeño grupo que "no conoce" representa un perfil particular: mujeres más jóvenes, exclusivamente rurales, con menor educación y principalmente amas de casa, lo que las identificaría como un grupo prioritario para intervenciones educativas.
+
+Podemos mejorar aún más la tabla al añadir el nombre Añadiendo nombre a la variable dependiente y una columna de totales.
+
+```{r}
+tabla_1 = data_cancer_cervical_0 |> 
+  select(edad_relacion_sexual, parejas_sex, edad, num_hijos, n_educacion, procedencia, ocupacion, conocimiento) |> 
+  tbl_summary(
+    by = conocimiento,
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits = list(all_continuous() ~ 0, all_categorical() ~ 1),
+    missing = "no"
+  ) |> 
+  modify_spanning_header(starts_with("stat_") ~ "**Conocimiento**") |>
+  add_overall() |>
+  modify_header(label ~ "**Característica**") |>
+  modify_caption("**Tabla 1. Características de la población según nivel de conocimiento**") |>
+  bold_labels()
+```
+
+## Exportando la tabla.
+
+Para exportar la tabla que hemos generado, usaremos la función as_flex_table() y save_as_docx del paquete `flextable`. La primera función transforma el objeto (la tabla) a un formato exportable y la segunda la guarda en nuestro directorio.
+
+```{r}
+tabla_1_flex = as_flex_table(tabla_1) # Convertir a flex table
+save_as_docx(tabla_1_flex, path = "tabla_1_flex.docx") # Guardar tabla
+```
+
+Deberías poder ver la tabla exportaba en la carpeta de tu proyecto.

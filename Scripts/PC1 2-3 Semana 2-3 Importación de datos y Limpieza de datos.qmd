@@ -1,0 +1,149 @@
+---
+title: "PC1 - PARTE2"
+format: html
+editor: visual
+---
+
+# 1. Importando y exportando los datos asignados 
+
+-   Se utilizara los programas her y rio para importardar la data asignada
+
+```{r}
+install.packages("here")
+install.packages("rio") 
+```
+
+-   Una vez instalados los programas, se carga el paquete con la opcion library
+
+```{r}
+library(here)
+library(rio)
+```
+
+-   Se importa la data a trabajar, la cual es conoc_actit_factor_cancer_cervical.csv
+
+```{r}
+data_cancercervical = import(here("data1", "conoc_actit_factor_cancer_cervical.csv"))
+```
+
+-   Ahora para exportar los datos se usara el programa readr primero se instalara el programa y despues de cargara con library
+
+```{r}
+install.packages("readr")
+```
+
+```{r}
+library(readr)
+```
+
+-   Se exportara la data trabajada, asignandole un nombre diferente en este caso se le esta asginando el nombre mi_datacancercervical.csv
+
+```{r}
+write_excel_csv(data_cancercervical, "mi_datacancercervical.csv")
+```
+
+# 2. Limpieza y transformacion de datos
+
+-   Se instalaran paquetes para poder utilizar funciones para limpieza
+
+```{r}
+install.packages("tidyverse")
+install.packages("janitor")
+```
+
+-   Cargar paquetes de libreria
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(rio)
+library(here)
+```
+
+-   Se usara la funcion tibble para que sea mas facil el manejo de los datos
+
+```{r}
+data_cancer = as_tibble(data_cancercervical)
+class(data_cancer)
+```
+
+## 2.1 Realizando la limpieza de datos
+
+-   Corrigiendo los nombres de variables.
+
+```{r}
+data_cancercervical1 = clean_names(data_cancer)
+```
+
+-   Nombres antes de corregirlos
+
+```{r}
+names(data_cancercervical1)
+```
+
+-   Nombres corregidos
+
+```{r}
+names(data_cancercervical2)
+```
+
+-   Misma resultado pero ahora usando la un pipe %\>%
+
+```{r}
+data_cancercervical3 <- data_cancer %>%
+  clean_names()
+```
+
+```{r}
+names(data_cancercervical3)
+```
+
+-   Ahora realizaremos limpieza de categorias
+
+```{r}
+data_cancercervical3 <- data_cancercervical3 %>%
+  mutate(antec_fam = str_to_lower(antec_fam), antec_fam = if_else(antec_fam == "sí", "si", antec_fam), antec_fam = factor(antec_fam, levels = c("si", "no")))
+```
+
+## 2.2 Transformación de Datos
+
+-   Colapsar categorías, con la variable `"n_educacion"` con muchas categorías, la hemos simplificado en **Básica / Superior**:
+
+```{r}
+data_cancercervical2 <- data_cancercervical2 %>%
+  mutate(n_educacion_simple = case_when(
+      str_detect(n_educacion, "primaria|secundaria") ~ "Basica",
+      str_detect(n_educacion, "superior") ~ "Superior",
+      TRUE ~ "Otros"))
+```
+
+-   Colapsar en grupo etario las edades, primero veremos todas las edades que tenemos y despues las colapsaremos en grupos etarios
+
+```{r}
+data_cancercervical2 |> count(edad)
+```
+
+```{r}
+data_cancercervical2 <- data_cancercervical2 %>%
+  mutate(
+    grupo_etario = case_when(
+      edad %in% 20:30 ~ "20-30",
+      edad %in% 31:40 ~ "31-40",
+      edad %in% 41:50 ~ "41-50",
+      edad > 50 ~ "50+",
+      TRUE ~ NA_character_)  )
+```
+
+-   Crear grupos etarios a partir de la edad
+
+```{r}
+data_cancercervical2 <- data_cancercervical2 %>%
+  mutate(
+    grupo_etario = case_when(
+      edad < 30 ~ "Joven",
+      edad >= 30 & edad < 60 ~ "Adulto",
+      edad >= 60 ~ "Adulto mayor",
+      TRUE ~ NA_character_
+    )
+  )
+```

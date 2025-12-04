@@ -1,0 +1,191 @@
+install.packages("survival")---
+title: "Bondad de ajuste"
+format: html
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+### Glosario introductorio
+
+**1. Modelo estadístico**\
+Es una representación matemática que describe relaciones entre
+variables. Se utiliza para hacer inferencias, predicciones o entender el
+comportamiento de los datos.
+
+**2. Variable continua**\
+Tipo de variable numérica que puede tomar un número infinito de valores
+dentro de un rango (por ejemplo, niveles de glucosa o circunferencia de
+cintura).
+
+**3. Distribución de probabilidad**\
+Describe cómo se distribuyen los valores posibles de una variable
+aleatoria. Algunas distribuciones comunes incluyen la normal, binomial y
+chi-cuadrado.
+
+**4. Hipótesis nula (H₀)**\
+Proposición que se plantea al inicio de una prueba estadística y que
+indica la ausencia de efecto o diferencia. Se rechaza o no según el
+valor p obtenido.
+
+**5. Valor p**\
+Probabilidad de obtener un resultado igual o más extremo que el
+observado, si la hipótesis nula fuera cierta. Un valor p menor a 0.05
+suele considerarse estadísticamente significativo.
+
+# ¿Que son las pruebas de bondad de ajuste?
+
+Las pruebas de bondad de ajust**e** evalúan qué tan bien los datos
+observados se ajustan a los valores esperados según un modelo
+estadístico.
+
+La bondad de ajuste puede evaluarse en al menos dos escenarios
+principales:
+
+### 1. En modelos de regresión
+
+Por ejemplo, un estudiante podría aplicar un modelo de regresión lineal para evaluar la relación entre la edad al iniciar relaciones sexuales y el número de parejas sexuales en las mujeres del estudio sobre cáncer cervicouterino. Para determinar si el modelo es adecuado para explicar esta relación, se puede calcular el estadístico de bondad de ajuste R².
+
+El estadístico R² mide el porcentaje de variabilidad de la variable dependiente (en este caso, el número de parejas sexuales) que es explicado por el modelo de regresión. Cuanto mayor sea el valor de R², mejor será el ajuste del modelo a los datos observados, lo que indicaría una relación más fuerte entre la edad de inicio sexual y la cantidad de parejas a lo largo de la vida.
+
+Variable independiente (X):
+Edad al iniciar relaciones sexuales → porque se considera que este factor puede influir en el comportamiento sexual posterior.
+
+Variable dependiente (Y):
+Número de parejas sexuales → porque es el resultado o consecuencia que podría variar dependiendo de la edad de inicio de las relaciones sexuales.
+### 2. En distribuciones de probabilidad
+
+En algunos casos, el modelo estadístico que se desea aplicar requiere
+que los datos sigan una distribución de probabilidad específica, como la
+distribución normal.
+
+Por otro lado, muchas pruebas de hipótesis utilizan **estadísticos de
+prueba** (no necesariamente modelos completos). Por ejemplo:
+
+-   Las **pruebas t** (t de Student) usan el estadístico *t*.
+
+-   El **ANOVA** usa el estadístico *F*.
+
+-   Las **pruebas de chi-cuadrado** usan el estadístico χ².
+
+Estas pruebas se basan en las distribuciones teóricas de estos
+estadísticos para calcular los valores p, los cuales permiten decidir si
+aceptar o rechazar la hipótesis nula.
+
+Este esta sesión práctica se enfocará en el segundo escenario.
+
+# Cargamos los paquetes necesarios
+
+```{r}
+library(rio)
+library(here)
+```
+
+# Cargar los datos
+
+```{r}
+data_cancer_cervical <- import(here("data", "conoc_actit_factor_cancer_cervical.csv"))
+```
+
+# 1. Para datos continuos
+
+La prueba t de Student y el ANOVA son dos pruebas estadísticas
+ampliamente utilizadas que permiten evaluar si el valor promedio de una
+variable numérica difiere entre dos o más grupos o categorías.
+
+Ambas pruebas asumen que la variable continua sigue una distribución
+normal.\
+Pero, ¿cómo podemos comprobar si esta condición se cumple?\
+Mediante una prueba de bondad de ajuste.
+
+Una de las pruebas más comunes para evaluar la normalidad de una
+variable numérica es la prueba de Shapiro-Wilk. Esta prueba permite
+determinar si los datos provienen de una distribución normal, lo cual es
+un requisito clave antes de aplicar pruebas como la t de Student o el
+ANOVA.
+
+## Para la variable edad al iniciar relaciones sexuales
+
+```{r}
+shapiro.test(data_cancer_cervical$edad_relacion_sexual)
+```
+p-valor < 0.05 → Rechazamos la Hipótesis nula (H₀), por lo tanto aceptamos la Hipótesis alternativa (H₁).
+
+H₀: Los datos de la edad al iniciar relaciones sexuales siguen una distribución normal.
+
+H₁: Los datos de la edad al iniciar relaciones sexuales NO siguen una distribución normal.
+## Para la variable número de parejas sexuales
+
+```{r}
+shapiro.test(data_cancer_cervical$parejas_sex)
+```
+p-valor < 0.05 → Rechazamos la Hipótesis nula (H₀), por lo tanto aceptamos la Hipótesis alternativa (H₁).
+
+H₀: Los datos del número de parejas sexuales siguen una distribución normal.
+
+H₁: Los datos del número de parejas sexuales NO siguen una distribución normal.
+
+## Respecto a la interpretación de los cuatro resultados
+
+Las hipótesis de la prueba de Shapiro-Wilk
+
+-   En la prueba de Shapiro-Wilk para la variable edad al iniciar relaciones sexuales (W = 0.8918, p = 2.05 × 10⁻¹¹), se rechaza la hipótesis nula (H₀: los datos siguen una distribución normal), ya que p < 0.05. Esto indica que las edades no se distribuyen normalmente, sino que presentan agrupamientos o asimetrías; por lo tanto, se deben emplear pruebas no paramétricas en los análisis posteriores.
+
+-   El resultado de la prueba de Shapiro-Wilk para la variable número de parejas sexuales (W = 0.6253, p = 1.38 × 10⁻²¹) muestra que se rechaza la hipótesis nula (H₀: normalidad), pues p < 0.05. Esto evidencia una distribución no normal, con un fuerte sesgo hacia valores bajos y pocos valores altos, por lo que también se recomienda utilizar métodos estadísticos no paramétricos.
+
+En conjunto, los resultados de las pruebas de Shapiro-Wilk para las variables edad al iniciar relaciones sexuales y número de parejas sexuales indican que ambas presentan una distribución no normal (p < 0.05 en ambos casos), por lo que se rechaza la hipótesis nula de normalidad (H₀). Esto sugiere que los datos están sesgados o concentrados en determinados valores, reflejando comportamientos o patrones irregulares dentro de la población estudiada. En consecuencia, los análisis estadísticos que involucren estas variables deben realizarse mediante pruebas no paramétricas, que no dependan del supuesto de normalidad para garantizar resultados válidos y representativos.
+
+# 2. Para datos categóricos
+El dataset para esta sesión contiene información sobre el nivel de conocimiento y las prácticas preventivas relacionadas con el cáncer cervicouterino. En esta muestra, el número de participantes con conocimiento adecuado sobre el cáncer cervical de 218 mujeres y que la mayoria tiene un conocimiento alto.
+
+```{r}
+table(data_cancer_cervical$conocimiento)
+```
+
+Un estudio realizado en México, titulado “Nivel de conocimiento sobre cáncer cervicouterino en mujeres de 15 a 49 años en una unidad de medicina familiar” (Revista Atención Familiar, Universidad Nacional Autónoma de México), reportó que el 13,1 % de las participantes presentaron un nivel de conocimiento bajo, 55,61 % un nivel medio y 31,28 % un nivel alto sobre el cáncer cervicouterino. Este estudio evidenció una tendencia general hacia un conocimiento intermedio sobre la enfermedad y sus métodos de detección. (DOI:
+<https://www.researchgate.net/publication/323678654_Nivel_de_conocimiento_sobre_cancer_cervicouterino_en_mujeres_de_15_a_49_anos_en_una_unidad_de_medicina_familiar>).
+
+En este caso, los resultados del estudio previo representan los valores esperados, mientras que los datos de nuestro conjunto representan los valores observados.
+Uno de los objetivos de nuestro análisis es evaluar si la proporción observada de mujeres con conocimiento adecuado difiere significativamente de la proporción reportada en el estudio de México (UNAM, 2018). Para ello, utilizamos la prueba de bondad de ajuste Chi-cuadrado.
+
+Las hipótesis de esta prueba son las siguientes:
+
+-    **Hipótesis nula (H₀):** No existe una diferencia significativa
+    entre la proporción observada y la esperada.
+
+-   **Hipótesis alternativa (H₁):** Existe una diferencia significativa
+    entre la proporción observada y la esperada.
+
+En R, esta prueba se realiza mediante la función `chisq.test()`, a la
+cual se deben proporcionar los valores observados y las proporciones
+esperadas para llevar a cabo la comparación.
+
+```{r}
+chisq.test(x = c(85, 67, 66), p = c(0.3128, 0.5561, 0.131))
+```
+
+Para normalizar las proporciones para que sumen 1 exactamente:
+
+```{r}
+p <- c(0.3128, 0.5561, 0.131)
+p <- p / sum(p)  # Normaliza las proporciones
+chisq.test(x = c(85, 67, 66), p = p)
+```
+H₀ (Hipótesis nula): Las frecuencias observadas siguen las proporciones esperadas.
+
+H₁ (Hipótesis alternativa): Las frecuencias observadas no siguen las proporciones esperadas.
+
+Resultados obtenidos:
+
+χ² = 77.484
+
+gl = 2
+
+p-valor < 2.2 × 10⁻¹⁶
+
+Dado que el p-valor es menor que 0.05, se rechaza la hipótesis nula (H₀) y se acepta la hipótesis alternativa (H₁).
+
+Interpretación
+
+Existe una diferencia estadísticamente significativa entre las frecuencias observadas en la muestra del archivo conoc_actit_factor_cancer_cervical.csv y las proporciones esperadas según el estudio “Nivel de conocimiento sobre cáncer cervicouterino en mujeres de 15 a 49 años en una unidad de medicina familiar” (ResearchGate, 2018).
+Esto indica que el nivel de conocimiento sobre el cáncer cervicouterino en la población analizada no sigue la misma distribución que la reportada en dicho estudio, lo que sugiere posibles diferencias contextuales en factores educativos, culturales o de acceso a la información sobre la prevención del cáncer.
